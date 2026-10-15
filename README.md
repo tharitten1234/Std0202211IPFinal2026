@@ -86,4 +86,10 @@ backend tests inject repository mock เฉพาะชุดทดสอบ ไ
 
 อ้างอิง pool pattern เฉพาะ `mysql2/promise`, env และ bound queries จาก [reference server.js](https://github.com/tharitten1234/slac-cpu-shop/blob/master/server.js) ไม่คัดลอก Inventory/users หรือฟีเจอร์ร้านค้า
 
-Repository นี้เผยแพร่ตามคำสั่งผู้ใช้ โดยใช้เวอร์ชัน final-ip ที่มี Thai/English และยังไม่มี sidebar/ตาราง UI จากสำเนาใหม่ การส่ง LMS เป็นขั้นตอนแยกและยังไม่ได้ดำเนินการ
+Repository นี้เผยแพร่ตามคำสั่งผู้ใช้ โดยใช้ต้นฉบับ final-ip ที่ปรับ UI navy/teal มี Thai/English, sidebar navigation, ตาราง desktop และการ์ดมือถือแล้ว การส่ง LMS เป็นขั้นตอนแยกและยังไม่ได้ดำเนินการ
+
+## ต้นฉบับและ UI ล่าสุด
+
+ใช้โฟลเดอร์ `C:\Users\tarit\OneDrive\Desktop\final-ip\Std0202211IPFinal2026` เป็น Git working copy หลัก เชื่อมกับ origin/main แล้ว ไม่ต้องใช้งานสำเนา outputs/hr-manager ต่อ
+
+UI มีเมนูเลื่อนไปแต่ละส่วน ไฮไลต์ติดตามการเลื่อน, summary ตามผลค้นหา, ตารางบนจอกว้าง/การ์ดบนมือถือ และไทย/English รักษา API/DB schema เดิม การแก้ frontend ไม่ต้องอัปโหลด backend ใหม่ ให้ refresh หรือ restart Expo เพื่อดู UI ใหม่

@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, Pressable, KeyboardAvoidingView, Platform, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Alert, Pressable, KeyboardAvoidingView, Platform, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, useWindowDimensions, View } from 'react-native';
 import { api, Cluster, Employee } from './api';
 
 const empty = { name: '', position: '', salary: '', status: 'Active' as Employee['status'] };
@@ -32,7 +32,7 @@ const thai: Record<string, string> = {
   'Failed to fetch': 'เชื่อมต่อเซิร์ฟเวอร์ไม่ได้ กรุณาลองใหม่',
   'Database request failed; please try again': 'ฐานข้อมูลไม่พร้อมใช้งาน กรุณาลองใหม่',
   'Fill in all fields before saving.': 'กรอกข้อมูลให้ครบก่อนบันทึก',
-  'Choose a status': 'เลือกสถานะ', 'Tier': 'กลุ่ม',
+  'Actions': 'จัดการ', 'Workspace': 'พื้นที่ทำงาน', 'Welcome back': 'ยินดีต้อนรับกลับ', 'Sign in to manage your team.': 'เข้าสู่ระบบเพื่อจัดการข้อมูลทีมของคุณ', 'Results reflect the current search.': 'จำนวนแสดงตามผลการค้นหาปัจจุบัน', 'Choose a status': 'เลือกสถานะ', 'Tier': 'กลุ่ม',
 };
 function Button({ title, onPress, disabled, color }: { title: string; onPress: () => void; disabled?: boolean; color?: string }) {
   return <Pressable accessibilityRole="button" accessibilityState={{ disabled: !!disabled }} disabled={disabled} onPress={onPress}
@@ -41,6 +41,11 @@ function Button({ title, onPress, disabled, color }: { title: string; onPress: (
   </Pressable>;
 }
 export default function App() {
+  const { width } = useWindowDimensions();
+  const wide = width >= 1100;
+  const sections = useRef<Record<string, number>>({});
+  const [section, setSection] = useState('Dashboard');
+  const go = (name: string) => { setSection(name); scroll.current?.scrollTo({ y: sections.current[name] || 0, animated: true }); };
   const [language, setLanguage] = useState<Language>('th');
   const t = (text: string) => language === 'th' ? (thai[text] || text) : text;
   const alertUser = (title: string, text: string) => notify(t(title), t(text));
@@ -91,7 +96,7 @@ export default function App() {
     try {
       const result = await api<{ success: boolean; clusters: Cluster[] }>('/employees/salary-clusters', token);
       if (request === analysisRequest.current) setClusters(result.clusters);
-    } catch (err) { if (request === analysisRequest.current) notify('Analysis failed', message(err)); }
+    } catch (err) { if (request === analysisRequest.current) alertUser('Analysis failed', message(err)); }
     finally { if (request === analysisRequest.current) setAnalyzing(false); }
   }
   async function mutate(path: string, method: string, body?: unknown) {
@@ -123,24 +128,44 @@ export default function App() {
   }
   const disabled = busy || loading || analyzing;
   return <SafeAreaView style={styles.safe}><KeyboardAvoidingView style={styles.safe} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-    <ScrollView ref={scroll} contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
+    <View style={[styles.shell, !wide && styles.mobileShell]}>
+      {!!token && <View style={[styles.sidebar, !wide && styles.mobileSidebar]}>
+        <Text style={styles.brand}>HR<Text style={styles.brandAccent}> / </Text>Manager</Text>
+        {wide && <Text style={styles.navLabel}>{t('Workspace')}</Text>}
+        <View style={!wide ? styles.mobileNav : styles.nav}>{['Dashboard', 'Employees', 'Add Employee', 'Salary Analytics'].map((name, index) => <Pressable key={name} accessibilityRole="button" accessibilityState={{ selected: section === name }} onPress={() => go(name)} style={[styles.navItem, section === name && styles.navActive]}><Text style={[styles.navText, section === name && styles.navActiveText]}>{['◫', '☷', '+', '▥'][index]}  {t(name)}</Text></Pressable>)}</View>
+      </View>}
+    <ScrollView ref={scroll} scrollEventThrottle={100} onScroll={event => {
+      const { contentOffset, layoutMeasurement, contentSize } = event.nativeEvent;
+      if (contentOffset.y <= 0) { setSection('Dashboard'); return; }
+      if (contentOffset.y + layoutMeasurement.height >= contentSize.height - 4) {
+        setSection('Salary Analytics'); return;
+      }
+      const visible = Object.entries(sections.current).filter(([, y]) => y <= contentOffset.y + 60).sort((a, b) => b[1] - a[1]);
+      if (visible.length) setSection(visible[0][0]);
+    }} style={styles.main} contentContainerStyle={[styles.container, !token && styles.loginContainer, !wide && styles.mobileContainer]} keyboardShouldPersistTaps="handled">
       <View style={styles.header}><Text style={styles.title}>HR Manager</Text><Pressable accessibilityRole="button" accessibilityLabel="Switch language / เปลี่ยนภาษา" onPress={() => setLanguage(language === 'th' ? 'en' : 'th')} style={styles.language}><Text style={styles.languageText}>{language === 'th' ? 'English' : 'ภาษาไทย'}</Text></Pressable></View><Text style={styles.subtitle}>{t('Employee Management & Salary Analytics')}</Text>
-      {!token ? <View style={styles.card}>
+      {!token ? <View style={[styles.card, styles.loginCard]}><Text style={styles.eyebrow}>HR MANAGER</Text><Text style={styles.welcome}>{t('Welcome back')}</Text><Text style={styles.subtitle}>{t('Sign in to manage your team.')}</Text>
         <Text style={styles.heading}>{t('Login')}</Text>
         <Text>{t('Username')}</Text><TextInput accessibilityLabel="Username" style={styles.input} value={username} onChangeText={setUsername} autoCapitalize="none" editable={!busy} />
         <Text>{t('Password')}</Text><TextInput accessibilityLabel="Password" style={styles.input} value={password} onChangeText={setPassword} secureTextEntry editable={!busy} onSubmitEditing={() => { if (!busy) void login(); }} />
         <Button title={t('Login')} onPress={() => void login()} disabled={busy} />{busy && <ActivityIndicator accessibilityLabel="Logging in" />}
       </View> : <>
-        <View style={styles.card}>
+        <View onLayout={e => { sections.current.Dashboard = e.nativeEvent.layout.y; }}>
           <Text style={styles.heading}>{t('Dashboard')}</Text>
-          <Text>{t(appliedSearch ? 'Matching employees' : 'Employees')}: {employees.length}</Text>
-          <Text>{t('Active')}: {employees.filter(e => e.status === 'Active').length} · {t('On Leave')}: {employees.filter(e => e.status === 'On Leave').length}</Text>
+          <View style={styles.stats}>{[
+            [t(appliedSearch ? 'Matching employees' : 'Employees'), employees.length],
+            [t('Active'), employees.filter(e => e.status === 'Active').length],
+            [t('On Leave'), employees.filter(e => e.status === 'On Leave').length],
+          ].map(([label, value]) => <View key={label} style={styles.stat}><Text style={styles.subtitle}>{label}</Text><Text style={styles.statValue}>{loading ? '—' : value}</Text></View>)}</View>
+          {!!appliedSearch && <Text style={styles.subtitle}>{t('Results reflect the current search.')}</Text>}
+        </View>
+        <View style={styles.card}>
           <Text style={styles.label}>{t('Search name / position')}</Text>
           <TextInput accessibilityLabel="Search name or position" placeholder={t('Search name / position')} style={styles.input} value={search} onChangeText={setSearch} editable={!disabled} onSubmitEditing={() => { if (!disabled) { setAppliedSearch(search); void load(search); } }} />
           <Button title={t('Search')} disabled={disabled} onPress={() => { setAppliedSearch(search); void load(search); }} />
           {!!(search || appliedSearch) && <Button title={t('Clear')} disabled={disabled} onPress={() => { setSearch(''); setAppliedSearch(''); void load(''); }} />}
         </View>
-        <View style={styles.card}>
+        <View onLayout={e => { sections.current['Add Employee'] = e.nativeEvent.layout.y; }} style={styles.card}>
           <Text style={styles.heading}>{t(editing ? 'Edit Employee' : 'Add Employee')}</Text>
           <Text style={styles.subtitle}>{t('Fill in all fields before saving.')}</Text>
           <Text>{t('Name')}</Text><TextInput accessibilityLabel="Employee name" style={styles.input} maxLength={100} value={form.name} editable={!disabled} onChangeText={name => setForm({ ...form, name })} />
@@ -152,20 +177,21 @@ export default function App() {
           {editing && <Button title={t('Cancel Edit')} onPress={() => { setEditing(null); setForm(empty); }} disabled={disabled} />}
         </View>
         {busy && <View style={styles.feedback}><ActivityIndicator accessibilityLabel="Saving employee" /><Text>{t('Saving employee')}…</Text></View>}
-        <Text style={styles.heading}>{t('Employees')}</Text>
+        <Text onLayout={e => { sections.current.Employees = e.nativeEvent.layout.y; }} style={styles.heading}>{t('Employees')}</Text>
+        {wide && <View style={styles.tableHeader}>{['Name', 'Position', 'Status', 'Salary', 'Actions'].map((label, i) => <Text key={label} style={[styles.column, i === 4 && styles.actionColumn, styles.columnLabel]}>{t(label)}</Text>)}</View>}
         {loading && <View style={styles.feedback}><ActivityIndicator accessibilityLabel="Loading employees" /><Text>{t('Loading employees')}…</Text></View>}
         {!!error && <View style={styles.card}><Text style={styles.error}>{t(error)}</Text><Button title={t('Retry')} onPress={() => void load(appliedSearch)} disabled={disabled} /></View>}
         {!loading && !error && employees.length === 0 && <Text>{t('No employees found.')}</Text>}
-        {employees.map(employee => <View style={styles.card} key={employee.id}>
-          <Text style={styles.heading}>{employee.name}</Text><Text>{employee.position}</Text>
-          <Text style={styles.label}>{t(employee.status)} · ฿{money(employee.salary)}</Text>
-          <View style={styles.buttons}>
-            <Button title={t('Edit')} disabled={disabled} onPress={() => { setEditing(employee.id); setForm({ ...employee, salary: String(employee.salary) }); scroll.current?.scrollTo({ y: 0, animated: true }); }} />
+        {employees.map(employee => <View style={[styles.employeeRow, !wide && styles.employeeMobile]} key={employee.id}>
+          <Text style={[styles.column, !wide && styles.mobileColumn, styles.employeeName]}>{employee.name}</Text><Text style={[styles.column, !wide && styles.mobileColumn]}>{employee.position}</Text>
+          <View style={[styles.column, !wide && styles.mobileColumn]}><Text style={[styles.badge, employee.status === 'On Leave' && styles.leaveBadge]}>{t(employee.status)}</Text></View><Text style={[styles.column, !wide && styles.mobileColumn]}>฿{money(employee.salary)}</Text>
+          <View style={[styles.buttons, wide && styles.actionColumn]}>
+            <Button title={t('Edit')} disabled={disabled} onPress={() => { setEditing(employee.id); setForm({ ...employee, salary: String(employee.salary) }); go('Add Employee'); }} />
             <Button title={t('Toggle Status')} disabled={disabled} onPress={() => void mutate(`/employees/${employee.id}/status`, 'PUT')} />
             <Button title={t('Delete')} color="#b42318" disabled={disabled} onPress={() => remove(employee)} />
           </View>
         </View>)}
-        <View style={styles.card}>
+        <View onLayout={e => { sections.current['Salary Analytics'] = e.nativeEvent.layout.y; }} style={styles.card}>
           <Text style={styles.heading}>{t('Salary Analytics')}</Text><Text style={styles.label}>{t('All employees · K-Means k=3')}</Text>
           <Button title={t('Analyze Salary Structure')} disabled={disabled} onPress={() => void analyze()} />
           {analyzing && <View style={styles.feedback}><ActivityIndicator accessibilityLabel="Analyzing salary structure" /><Text>{t('Analyzing salary structure')}…</Text></View>}
@@ -175,31 +201,52 @@ export default function App() {
           </View>)}
         </View>
       </>}
-    </ScrollView>
+    </ScrollView></View>
   </KeyboardAvoidingView></SafeAreaView>;
 }
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#f1f5f9' },
-  container: { padding: 20, paddingTop: 40, paddingBottom: 40, maxWidth: 920, width: '100%', alignSelf: 'center', gap: 16 },
-  title: { fontSize: 30, fontWeight: '700', color: '#16324f' },
+  shell: { flex: 1, flexDirection: 'row' }, mobileShell: { flexDirection: 'column' },
+  main: { flex: 1 }, mobileContainer: { padding: 16 },
+  sidebar: { width: 228, backgroundColor: '#1D344E', padding: 20, paddingTop: 36, gap: 32 },
+  mobileSidebar: { width: '100%', padding: 16, gap: 12 },
+  brand: { color: '#fff', fontSize: 22, fontWeight: '700' }, brandAccent: { color: '#79B7B4' },
+  navLabel: { color: '#B5C6D4', fontSize: 12 }, nav: { gap: 8 }, mobileNav: { flexDirection: 'row', flexWrap: 'wrap', gap: 4 },
+  navItem: { padding: 12, borderRadius: 8, minHeight: 44 }, navActive: { backgroundColor: '#304C65' },
+  navText: { color: '#C5D2DD', fontSize: 14 }, navActiveText: { color: '#fff', fontWeight: '700' },
+  stats: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginVertical: 12 },
+  stat: { flex: 1, minWidth: 120, backgroundColor: '#fff', borderWidth: 1, borderColor: '#E2E7EB', borderRadius: 12, padding: 18 },
+  statValue: { color: '#1D344E', fontSize: 30, fontWeight: '700' },
+  loginContainer: { maxWidth: 540, paddingTop: 64 }, loginCard: { padding: 28, gap: 14 },
+  eyebrow: { color: '#327C83', fontSize: 12, fontWeight: '700', letterSpacing: 2 }, welcome: { color: '#1D344E', fontSize: 26, fontWeight: '700' },
+  tableHeader: { flexDirection: 'row', paddingHorizontal: 16, paddingVertical: 12, gap: 12 },
+  column: { flex: 1, minWidth: 0, color: '#475569', fontSize: 14 }, columnLabel: { fontWeight: '600', fontSize: 12 },
+  mobileColumn: { flex: 0 },
+  actionColumn: { flex: 2.4, marginTop: 0 },
+  employeeRow: { backgroundColor: '#fff', flexDirection: 'row', alignItems: 'center', padding: 16, gap: 12, borderRadius: 10, borderWidth: 1, borderColor: '#E2E7EB' },
+  employeeMobile: { flexDirection: 'column', alignItems: 'stretch' }, employeeName: { color: '#1D344E', fontWeight: '600' },
+  badge: { alignSelf: 'flex-start', color: '#236269', backgroundColor: '#EAF4F3', borderRadius: 6, paddingHorizontal: 10, paddingVertical: 5, fontSize: 12 },
+  leaveBadge: { backgroundColor: '#F7F0DF', color: '#796020' },
+  safe: { flex: 1, backgroundColor: '#F4F6F8' },
+  container: { padding: 20, paddingTop: 32, paddingBottom: 48, maxWidth: 1440, width: '100%', alignSelf: 'center', gap: 16 },
+  title: { fontSize: 30, fontWeight: '700', color: '#1D344E' },
   subtitle: { color: '#475569', marginBottom: 8 },
-  heading: { fontSize: 19, fontWeight: '600', color: '#16324f', marginBottom: 8 },
+  heading: { fontSize: 19, fontWeight: '600', color: '#1D344E', marginBottom: 8 },
   card: { backgroundColor: 'white', borderRadius: 12, padding: 20, borderWidth: 1, borderColor: '#dbe3ed', gap: 8 },
-  input: { borderWidth: 1, borderColor: '#94a3b8', borderRadius: 6, padding: 12, fontSize: 16, backgroundColor: '#fff', color: '#0f172a' },
+  input: { borderWidth: 1, borderColor: '#CAD4DC', borderRadius: 6, padding: 12, fontSize: 16, backgroundColor: '#fff', color: '#0f172a' },
   label: { marginVertical: 8 }, gap: { height: 4 },
   buttons: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginTop: 8 },
-  tier: { backgroundColor: '#edf4ff', padding: 16, borderRadius: 8, marginTop: 12, gap: 6 },
+  tier: { backgroundColor: '#EFF5F5', padding: 16, borderRadius: 8, marginTop: 12, gap: 6 },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' },
   language: { minHeight: 44, paddingHorizontal: 18, paddingVertical: 12, borderRadius: 24, borderWidth: 1, borderColor: '#bacbdd', backgroundColor: '#fff' },
-  languageText: { color: '#16324f', fontWeight: '600' },
-  button: { minHeight: 46, paddingHorizontal: 18, paddingVertical: 12, borderRadius: 8, alignItems: 'center', justifyContent: 'center', backgroundColor: '#165ea8' },
+  languageText: { color: '#1D344E', fontWeight: '600' },
+  button: { minHeight: 46, paddingHorizontal: 18, paddingVertical: 12, borderRadius: 8, alignItems: 'center', justifyContent: 'center', backgroundColor: '#327C83' },
   buttonText: { color: '#fff', fontSize: 15, fontWeight: '600', textAlign: 'center' },
   dangerButton: { backgroundColor: '#fff1f0', borderWidth: 1, borderColor: '#f3c2bd' },
   dangerText: { color: '#a92119' },
   disabled: { opacity: 0.45 }, pressed: { opacity: 0.75 },
   statusOption: { minHeight: 44, paddingHorizontal: 20, paddingVertical: 12, borderWidth: 1, borderColor: '#bdcbd9', borderRadius: 8, backgroundColor: '#fff' },
-  selectedStatus: { backgroundColor: '#e6f0ff', borderColor: '#165ea8' },
-  selectedText: { color: '#124b86', fontWeight: '700' }, optionText: { color: '#475569' },
+  selectedStatus: { backgroundColor: '#EAF4F3', borderColor: '#327C83' },
+  selectedText: { color: '#236269', fontWeight: '700' }, optionText: { color: '#475569' },
   feedback: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 12 },
   error: { color: '#b42318' },
 });

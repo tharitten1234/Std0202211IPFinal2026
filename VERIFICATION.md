@@ -35,3 +35,14 @@ UI test ใช้ mock API ใน browser และ backend API tests ใช้ 
 - สแกน snapshot ไม่พบค่าลับจาก .env ที่มีในเครื่องหรือ credential patterns; รวมเฉพาะ .env.example ไม่มี .env, node_modules หรือ build artifacts
 - สถานะ Cloud ในบันทึกด้านบนเป็นสถานะช่วงพัฒนาเริ่มต้น ปัจจุบันผู้ใช้ยืนยัน startup backend บน Cloud และการใช้งาน Dashboard แล้ว ผู้ช่วยไม่ได้รันทดสอบ live DB เพิ่มในรอบเผยแพร่
 - ไม่ส่ง LMS
+
+## UI ต้นฉบับล่าสุด — 15 ตุลาคม 2026
+
+- นำ UI navy/teal ที่ review แล้วมาใช้ใน final-ip จริง: sidebar/เมนูมือถือ, summary cards, ตาราง desktop/การ์ดมือถือ, form Add/Edit, ปุ่มไทย/English และ generic favicon
+- แก้เมนูให้ active ตามการเลื่อนหน้า และแปล Analytics failure alert ตามภาษาที่เลือก
+- เชื่อม Git working copy final-ip กับประวัติ origin/main ของ GitHub โดยเก็บ .env และ source งานเดิมไว้ สำรอง App.tsx และ Git index ก่อนเปลี่ยน
+- npm test backend ผ่าน 5/5, TypeScript และ web build ผ่าน
+- Chrome headless UI tests ด้วย API mock ผ่าน: failed/success login, validation, Add, Edit ทุกฟิลด์, Search/Clear, Toggle, Delete cancel/confirm, analysis loading/cards, Thai/English, generic icon และ active navigation หลังเลื่อนเอง
+- ตรวจ viewport 320/430/1440; ไม่พบ desktop/320px horizontal overflow และไม่พบ page errors
+- ไม่ทดสอบ live Cloud DB หรือโทรศัพท์จริงในรอบนี้ ไม่แก้ backend/API/schema และไม่ส่ง LMS
+- Android Hermes bundle export ผ่าน (ไม่ใช่การทดสอบ native APK/device)
