@@ -1,95 +1,255 @@
 # HR Manager & Salary Analytics System
 
-Student: std6730202211 · Backend assigned port: 3022
+แอปจัดการพนักงานและวิเคราะห์โครงสร้างเงินเดือน สำหรับวิชา Internet Programming — Final Exam 2026 พัฒนาด้วย **React Native (Expo), Express.js และ MySQL**
 
-ชื่อโฟลเดอร์/ชื่อ repo: **Std0202211IPFinal2026** (เลขท้าย 7 หลัก `0202211` แทน `6xxxxxx` ทั้งชุดตาม PDF)
+รหัสนิสิต: `6730202211` · บัญชี Cloud: `std6730202211` · Backend port: `3022`
 
-## ขอบเขต
+ชื่อ repository `Std0202211IPFinal2026` ใช้เลขท้าย 7 หลักของรหัสนิสิต (`0202211`) ตามรูปแบบที่กำหนดในข้อสอบ
 
-React Native + Expo frontend, Express backend, mock login `admin` / `password123` ตามข้อสอบ, employee CRUD, toggle status, Edit ชื่อ/ตำแหน่ง/เงินเดือน/สถานะ, Search ชื่อ/ตำแหน่ง และ 1D K-Means k=3 พร้อม loading และ summary cards
+## ความสามารถ
 
-เงื่อนไขล่าสุดของผู้ใช้แทน in-memory ด้วย MySQL อาจารย์เท่านั้น: `ip_std6730202211` ใช้ตาราง `ThaKet_employees` และทุกคอลัมน์ขึ้นต้น `ThaKet_` ไม่อ่านหรือเขียน Inventory/users ไม่สร้าง database ไม่เพิ่มระบบสมัครสมาชิกหรือ JWT จริง
+- Login ด้วยบัญชีจำลองตามโจทย์
+- แสดง เพิ่ม แก้ไข และลบพนักงาน โดยยืนยันก่อนลบ
+- แก้ชื่อ ตำแหน่ง เงินเดือน และสถานะ `Active` / `On Leave`
+- ค้นหาจากชื่อหรือตำแหน่ง และสลับสถานะพนักงาน
+- วิเคราะห์เงินเดือนด้วย 1D K-Means (`k=3`) แสดงจำนวนคนและเงินเดือนเฉลี่ยของแต่ละกลุ่ม
+- แสดง loading/error และอัปเดตรายการหลังดำเนินการผ่าน API
+- สลับไทย/English มีเมนูนำทาง ตารางบน desktop และการ์ดบนมือถือ
 
-## เริ่ม backend
+การจัดเก็บข้อมูลใช้ MySQL ตามเงื่อนไขเพิ่มเติมของงาน แทน in-memory array ในข้อสอบเดิม ใช้เฉพาะฐานข้อมูล `ip_std6730202211` และตาราง `ThaKet_employees` ไม่แก้ตาราง `Inventory` หรือ `users` และไม่สร้างฐานข้อมูลอื่น
 
-ต้องมี Node.js >=20.19 (ใช้ Node 24 ตรวจในเครื่องนี้)
+## โครงสร้างโปรเจกต์
+
+```text
+Std0202211IPFinal2026/
+├── backend/
+│   ├── server.js          # เริ่ม server และตรวจการเชื่อมต่อ DB
+│   ├── app.js             # Login, employee API และ validation
+│   ├── db.js              # MySQL connection pool และโหลด .env
+│   ├── repository.js      # SQL และ map ชื่อฟิลด์สำหรับ API
+│   ├── clusters.js        # K-Means
+│   ├── schema.sql         # โครงสร้างตาราง
+│   ├── setup-db.js        # สร้างตารางและ seed เมื่อว่าง
+│   ├── app.test.js        # ชุดทดสอบด้วย mock repository
+│   └── .env.example
+├── frontend/
+│   ├── App.tsx            # หน้าจอและการโต้ตอบ
+│   ├── api.ts             # เรียก API พร้อม token และ timeout
+│   ├── public/favicon.svg
+│   └── .env.example
+└── VERIFICATION.md        # ขอบเขตและผลตรวจสอบ
+```
+
+เส้นทางข้อมูล: **หน้าจอ → `frontend/api.ts` → Express API → MySQL → ผลลัพธ์กลับมาอัปเดตหน้าจอ** ส่วน Analytics อ่านเงินเดือนปัจจุบันจาก DB แล้วคำนวณบน backend
+
+## สิ่งที่ต้องมี
+
+- Git หรือดาวน์โหลด ZIP จากปุ่ม **Code → Download ZIP** แล้วแตกไฟล์
+- Node.js และ npm: แนะนำ Node.js 24 ซึ่งใช้ตรวจงานนี้
+- สำหรับมือถือ: Expo Go ที่รองรับ **Expo SDK 54** หรือ development build ที่ตรง SDK ของโปรเจกต์
+- หากต้องรัน backend เอง: บัญชี SSH/SFTP และ MySQL ที่อาจารย์อนุญาตให้ใช้
+
+Repository ไม่มีรหัสผ่านหรือไฟล์ `.env` จริง ผู้ที่ต้องตั้งค่า backend ให้ขอ credentials ผ่านช่องทางของรายวิชา ไม่ใส่ไว้ใน GitHub หรือ `EXPO_PUBLIC_*`
+
+## 1. ดาวน์โหลดโปรเจกต์
+
+เปิด Terminal ในตำแหน่งที่ต้องการเก็บงาน:
+
+```bash
+git clone https://github.com/tharitten1234/Std0202211IPFinal2026.git
+cd Std0202211IPFinal2026
+```
+
+ถ้าดาวน์โหลด ZIP ให้เปิด Terminal ในโฟลเดอร์ที่มี `backend/` และ `frontend/` โดยตรง คำสั่งถัดไปอ้างจากโฟลเดอร์หลักนี้
+
+## 2. ทดลอง frontend กับ Cloud backend
+
+วิธีนี้ไม่ต้องเปิด backend เพิ่มในเครื่องผู้ตรวจ แต่ต้องมี backend ของโปรเจกต์ทำงานบน Cloud และเครื่องผู้ตรวจเข้าถึงได้
+
+ใน Terminal ช่องแรก:
+
+```bash
+cd frontend
+npm ci
+```
+
+สร้าง `frontend/.env` จากไฟล์ตัวอย่าง **เฉพาะครั้งแรก**:
 
 ```powershell
-cd backend
-npm ci
+# Windows PowerShell
 Copy-Item .env.example .env
-# กรอก DB_PASSWORD และยืนยัน DB_HOST/DB_USER/DB_PORT ใน .env ด้วยตนเอง
-# DB_NAME ต้องเป็น ip_std6730202211 เท่านั้น
+```
+
+```bash
+# macOS / Linux
+cp .env.example .env
+```
+
+ตรวจให้มีบรรทัดนี้ใน `frontend/.env`:
+
+```dotenv
+EXPO_PUBLIC_API_URL=http://119.59.102.161:3022/api
+```
+
+เปิดเว็บสำหรับตรวจ UI:
+
+```bash
+npm run web
+```
+
+เปิด URL ที่ Expo แสดงใน Terminal (มักเป็น `http://localhost:8081` แต่อาจเป็น port อื่น) หรือหากต้องตรวจบนมือถือ ให้ใช้:
+
+```bash
+npm start
+```
+
+สแกน QR จาก Terminal ด้วย Expo Go ที่รองรับ SDK ของโปรเจกต์ โดยคอมพิวเตอร์กับโทรศัพท์อยู่ในเครือข่ายเดียวกัน การรันบนเว็บช่วยตรวจ flow ได้ แต่ไม่ทดแทนการตรวจ React Native บนอุปกรณ์จริง
+
+### บัญชีสำหรับตรวจงาน
+
+| ช่อง | ค่า |
+|---|---|
+| Username | `admin` |
+| Password | `password123` |
+
+นี่เป็น **mock login ตามข้อสอบ** ไม่ใช่บัญชี SSH หรือ MySQL และ token `mock-jwt-token` ไม่ใช่ระบบ JWT สำหรับใช้งานจริง
+
+หาก Login แล้วเชื่อมต่อไม่ได้ ให้ตรวจสถานะ Cloud backend ตามหัวข้อถัดไป การ clone repository ไม่ได้เริ่ม server บน Cloud ให้อัตโนมัติ
+
+## 3. เตรียมและรัน backend บน Cloud
+
+ทำส่วนนี้เมื่อต้องติดตั้ง backend ใหม่ หรือ Cloud backend ยังไม่ทำงาน หากมี server เดิมทำงานอยู่ที่ port `3022` ไม่ต้องเริ่มอีกตัว
+
+### 3.1 เชื่อมต่อและวางไฟล์
+
+```bash
+ssh -p 2222 std6730202211@119.59.102.161
+```
+
+ใช้บัญชีที่ได้รับอนุญาต แล้วตรวจ `pwd` และสิทธิ์ของ `/app` ก่อนวางไฟล์ ใช้โฟลเดอร์โปรเจกต์แยก เช่น `/app/Std0202211IPFinal2026/backend` อย่าเขียนทับ `/app/server.js` หรืองานเดิม
+
+อัปโหลดโฟลเดอร์ `backend` ผ่าน SFTP โดยใช้ host/user/port เดียวกับ SSH ไม่ต้องอัปโหลด `node_modules` หรือ `.env` จากคอม หากมี backend อยู่แล้ว ให้ใช้ path จริงที่ติดตั้งไว้ ไม่สร้างชุดซ้ำโดยไม่จำเป็น
+
+### 3.2 ตั้งค่าฐานข้อมูล
+
+เข้าโฟลเดอร์ `backend` บน Cloud ที่มี `server.js`, `setup-db.js` และ `package.json` จากนั้นสร้าง `.env` เฉพาะครั้งแรก:
+
+```bash
+cp .env.example .env
+chmod 600 .env
+nano .env
+```
+
+กรอกค่าจริงตามบัญชี MySQL ที่ได้รับ:
+
+```dotenv
+PORT=3022
+DB_HOST=localhost
+DB_PORT=3306
+DB_USER=std6730202211
+DB_PASSWORD=
+DB_NAME=ip_std6730202211
+```
+
+ต้องเติม `DB_PASSWORD` เอง ช่องว่างในตัวอย่างไม่ใช่รหัสผ่านใช้งานจริง กด `Ctrl+O` → `Enter` เพื่อบันทึกใน nano แล้ว `Ctrl+X` เพื่อออก
+
+`localhost` ในขั้นตอนนี้หมายถึง MySQL บน Cloud ที่ backend กำลังรัน ไม่ใช่ MySQL บนคอมผู้ตรวจ รหัสผ่าน SSH กับ MySQL อาจต่างกัน บัญชีนี้เคยถูกปฏิเสธ SSH forwarding (`administratively prohibited`) จึงใช้วิธีรัน backend บน Cloud แทน SSH tunnel
+
+### 3.3 สร้างตารางและเริ่ม API
+
+จากโฟลเดอร์ `backend` บน Cloud:
+
+```bash
+npm ci
 npm run db:setup
 npm start
 ```
 
-`.env` อยู่ข้าง `server.js` และถูก gitignore ห้ามใส่ password ลง README, source หรือ EXPO_PUBLIC_* ค่า localhost เป็นตัวอย่างจากสไลด์เมื่อ backend รันบน cloud ต้องยืนยันกับอาจารย์ ไม่ได้แปลว่า MySQL cloud เปิดรับจากเครื่องส่วนตัว
+- `db:setup` ใช้ฐานข้อมูลเดิม `ip_std6730202211` สร้างเฉพาะ `ThaKet_employees` หากยังไม่มี และเพิ่มพนักงาน 5 คนเมื่อตารางว่าง
+- ถ้ามีข้อมูลแล้วจะไม่ seed ซ้ำหรือรีเซ็ตข้อมูล ไม่จำเป็นต้องรัน setup ทุกครั้งที่เริ่ม server
+- ทุกคอลัมน์ขึ้นต้น `ThaKet_`: `ThaKet_id`, `ThaKet_name`, `ThaKet_position`, `ThaKet_status`, `ThaKet_salary`
+- ถ้ามีตารางชื่อนี้อยู่แต่โครงสร้างไม่ตรง ให้ตรวจสอบกับผู้ดูแล ไม่ลบหรือแก้ตารางเดิมเพื่อบังคับให้รันผ่าน
 
-ก่อนรัน `db:setup` อ่าน `backend/schema.sql` และ `backend/setup-db.js`: สร้างเฉพาะตารางใหม่ ถ้าตารางว่างจะเพิ่ม 5 คน ถ้ามีข้อมูลแล้วจะเก็บไว้และไม่ seed ซ้ำ ไม่รัน setup อัตโนมัติเมื่อเปิด server หากมีตารางชื่อนี้อยู่แต่ schema ไม่ตรง ให้หยุดตรวจสอบ ห้าม drop/alter งานเดิม
+เมื่อเริ่มสำเร็จจะแสดง `HR API listening on port 3022` ให้เปิด Terminal นี้ค้างไว้ การรันด้วย `npm start` แบบนี้ไม่ได้รับประกันว่า process จะทำงานต่อหลังปิด SSH
 
-## เริ่ม frontend
+**URL สำหรับ frontend:** `http://119.59.102.161:3022/api`
 
-```powershell
-cd frontend
-npm ci
-Copy-Item .env.example .env
-# ตั้ง EXPO_PUBLIC_API_URL ให้ชี้ backend ที่รันจริง แล้ว restart Expo
-npm start
-# หรือ npm run web
-```
+การเปิด `http://119.59.102.161:3022/` แล้วได้ `{"error":"Endpoint not found"}` เป็นผลปกติ เพราะไม่มีหน้าเว็บหรือ endpoint ที่ `/` ส่วน `/api/employees` ต้องแนบ Bearer token จึงจะอ่านข้อมูลได้
 
-ตั้งต้น `http://119.59.102.161:3022/api` ตาม assigned port แต่ยังไม่ยืนยันว่ามี backend ของโปรเจกต์ทำงานอยู่ หากรัน backend ในเครื่อง ให้ใช้ LAN IP ของคอมพิวเตอร์สำหรับโทรศัพท์ (โทรศัพท์ใช้ localhost ของคอมไม่ได้), Android emulator ใช้ `http://10.0.2.2:3022/api` หน้า web ใช้ `http://localhost:3022/api` ได้ ตัวอย่าง HTTP cloud ใช้ตามสไลด์ หากเปิด frontend ผ่าน HTTPS อาจถูก browser บล็อก HTTP API ให้ใช้ URL HTTPS proxy ที่อาจารย์จัดให้และทดสอบจริง
+## 4. ลำดับตรวจฟังก์ชัน
 
-ใช้ Expo SDK 54 / React Native 0.81 / React 19.1 ตาม [Expo version matrix](https://docs.expo.dev/versions/v54.0.0/). ต้องใช้ Expo Go/development build ที่รองรับ SDK 54 ยังไม่ได้ทดสอบบนอุปกรณ์จริง
+รายการด้านล่างเป็นขั้นตอนตรวจรับ ไม่ใช่การยืนยันว่าทดสอบ Cloud ครบแล้ว การเพิ่ม/แก้ไข/ลบจะเปลี่ยนข้อมูลใน DB ที่กำลังเชื่อมต่อจริง
 
-## API
+| ขั้นตอน | ผลที่ควรได้ |
+|---|---|
+| Login ด้วยรหัสผิด แล้วใช้บัญชีข้างต้น | ผิดแสดง alert; ถูกเข้าสู่ Dashboard |
+| เปิดรายการหลัง setup ครั้งแรก | มีพนักงานตั้งต้น 5 คน (จำนวนอาจเปลี่ยนเมื่อมีการใช้งานต่อ) |
+| กดเพิ่มโดยเว้นช่องว่างหรือเงินเดือนผิด | แจ้ง validation และไม่บันทึก |
+| เพิ่มพนักงาน | รายการและสถิติอัปเดตจาก API |
+| Edit ชื่อ ตำแหน่ง เงินเดือน และสถานะ | บันทึกและแสดงค่าที่แก้ไข |
+| Search ด้วยชื่อและตำแหน่ง แล้วล้างค้นหา | แสดงผลตรงคำค้นและกลับมาครบทุกรายการ |
+| เปลี่ยนสถานะ | สลับ Active / On Leave และสถิติอัปเดต |
+| Delete แล้วกดยกเลิก | รายการยังอยู่ |
+| Delete แล้วกดยืนยัน | รายการถูกลบและหน้าจออัปเดต |
+| Analyze Salary Structure | มี loading แล้วแสดง 3 กลุ่มพร้อมจำนวนคนและค่าเฉลี่ย |
+| เปลี่ยนข้อมูลหลังเปิด Analytics | คำนวณผล Analytics ใหม่ |
+| Refresh และ Login ใหม่ | ข้อมูลที่บันทึกยังอยู่ใน MySQL |
+| สลับไทย/English และลองจอแคบ/จอกว้าง | ภาษาเปลี่ยนและ layout ปรับตามหน้าจอ |
 
-ทุก employee endpoint ต้องส่ง `Authorization: Bearer mock-jwt-token` (เป็น mock ตามโจทย์ ไม่ใช่ JWT จริง)
+สถิติด้านบนแสดง **ตามผลค้นหาปัจจุบัน** ส่วน Analytics ใช้ **พนักงานทั้งหมด รวม On Leave** ไม่จำกัดตามคำค้น
 
-| Method | Path | ผล |
+## 5. API และข้อมูล
+
+| Method | Endpoint | Request / ผลลัพธ์ |
 |---|---|---|
-| POST | /api/login | body username/password; 200 ตาม schema ข้อสอบ หรือ 401 |
-| GET | /api/employees?search= | employee array ค้นหาชื่อ/ตำแหน่ง |
-| POST | /api/employees | name, position, salary; status optional default Active; 201 |
-| PUT | /api/employees/:id | name, position, salary, status ครบ; 200 |
-| PUT | /api/employees/:id/status | toggle Active / On Leave; 200 |
-| DELETE | /api/employees/:id | success true; ต้องยืนยัน Alert ใน frontend ก่อน |
-| GET | /api/employees/salary-clusters | success true และ clusters group/centroid/count |
+| POST | `/api/login` | username/password; สำเร็จ 200 พร้อม success/token, ผิด 401 |
+| GET | `/api/employees?search=` | employee array; ค้นหาชื่อ/ตำแหน่ง |
+| POST | `/api/employees` | name, position, salary; status ไม่ส่งจะเป็น Active; สำเร็จ 201 |
+| PUT | `/api/employees/:id` | name, position, salary, status ครบ; สำเร็จ 200 |
+| PUT | `/api/employees/:id/status` | toggle สถานะ; สำเร็จ 200 |
+| DELETE | `/api/employees/:id` | สำเร็จ 200 พร้อม success |
+| GET | `/api/employees/salary-clusters` | success และ clusters: group/centroid/count |
 
-API map เป็น `id` (string), `name`, `position`, `status`, `salary` (number) เสมอ Input ชื่อ/ตำแหน่งไม่เกิน 100 ตัวอักษร เงินเดือนบวกและไม่เกิน 9,999,999,999.99 ทศนิยมไม่เกิน 2 ตำแหน่ง; ผิดส่ง 400, ไม่พบ id ส่ง 404, DB ล้มเหลวส่ง 500 โดยไม่เผยรายละเอียด credentials
+ทุก employee endpoint ต้องส่ง `Authorization: Bearer mock-jwt-token` ชื่อฟิลด์ใน API เป็น `id` (string), `name`, `position`, `status`, `salary` (number) แม้คอลัมน์ DB จะมี prefix
 
-K-Means ใช้ salary ของพนักงานทั้งหมด (รวม On Leave) ไม่ใช้ผล Search เลือก centroid เริ่มต้นแบบ deterministic farthest-point แล้ววน assign/mean ไม่เกิน 100 รอบ จัด Tier ตาม centroid ต่ำไปสูง หากข้อมูลว่าง/เงินเดือนแตกต่างกันไม่ถึง 3 ค่า จะคืน 3 cards โดย tier ว่างมี count=0, centroid=null (แสดง —) ไม่สร้างค่าเฉลี่ยปลอม หลัง mutation จะ refresh รายการจาก API และคำนวณ analytics ใหม่ถ้าเคยเปิดแล้ว
+ชื่อและตำแหน่งต้องไม่ว่างและยาวไม่เกิน 100 ตัวอักษร เงินเดือนต้องเป็นตัวเลขมากกว่า 0 สูงสุด `9999999999.99` และทศนิยมไม่เกิน 2 ตำแหน่ง ข้อมูลผิดส่ง 400, ไม่มี record ส่ง 404, ไม่ส่ง token/ไม่ถูกต้องส่ง 401 และ DB request ล้มเหลวส่ง 500
 
-## Deploy ตามสไลด์ React Native + Cloud DB
+K-Means เลือกค่าเริ่มต้นแบบ deterministic farthest-point แล้ววน assignment/mean ไม่เกิน 100 รอบ เรียง Tier จากเงินเดือนต่ำไปสูง `centroid` คือเงินเดือนเฉลี่ยของกลุ่ม (ปัดทศนิยม 2 ตำแหน่ง) หากข้อมูลว่างหรือมีเงินเดือนต่างกันไม่ถึง 3 ค่า กลุ่มที่ไม่มีข้อมูลจะมี `count: 0`, `centroid: null` และ UI แสดง `—`
 
-1. SSH/SFTP host `119.59.102.161`, port `2222`, user `std6730202211` กรอกรหัสผ่านเอง ไม่เก็บใน repo
-2. ตรวจ `pwd`, `id`, `ls -ld /app` และสิทธิ์ directory ของบัญชีก่อน upload สไลด์แสดง /app แต่กล่าวถึง home ของแต่ละบัญชีด้วย จึงต้องยืนยัน path ที่อนุญาตจริง ห้ามเขียนทับ app ที่มีอยู่
-3. Upload **backend** ไปโฟลเดอร์ใหม่ในพื้นที่ของบัญชี ตั้ง `.env` ข้าง `server.js` บน server และ `chmod 600 .env`
-4. อ่าน schema ก่อนรัน แล้ว `npm ci`, `npm run db:setup`, `npm start` ใช้ port 3022 เท่านั้น ไม่หยุด process ของคนอื่นถ้า port ถูกใช้
-5. ทดสอบ login, employees และ analytics ผ่าน URL จริง แล้วตั้ง frontend API URL ตามผลทดสอบ อย่าสรุปว่าสำเร็จจาก TCP reachability อย่างเดียว
+## 6. คำสั่งตรวจโค้ด
 
-สถานะล่าสุด: ผู้ใช้เข้า SSH และรัน backend บน Cloud port 3022 แล้ว พร้อมยืนยันการใช้งานผ่าน frontend และแสดง Dashboard 5 คน ผู้ช่วยไม่ได้ทดสอบ CRUD กับ Cloud DB โดยตรงในรอบเผยแพร่ ไม่มี credentials รวมอยู่ใน repository
+จากโฟลเดอร์หลัก หลังติดตั้ง dependencies ทั้งสองส่วนแล้ว:
 
-## ตรวจสอบ
-
-```powershell
+```bash
 cd backend
 npm test
 cd ../frontend
 npm run typecheck
 npx expo install --check
 npm run build:web
+npx expo export --platform android --output-dir dist-android
 ```
 
-backend tests inject repository mock เฉพาะชุดทดสอบ ไม่ใช่ production storage และไม่พิสูจน์ live MySQL integration ต้องตรวจ CRUD/seed persistence กับ DB อาจารย์หลังตั้งค่า ดู `VERIFICATION.md` สำหรับผลที่รันจริง
+Backend tests ใช้ mock repository จึงไม่ต้องมี `.env` หรือ MySQL เพื่อรันทดสอบ แต่ `npm start` ใช้ MySQL จริงเท่านั้น ไม่มี in-memory fallback ผล build ไม่ใช่หลักฐานว่ารันผ่านบนโทรศัพท์หรือเชื่อม DB จริงแล้ว ดูขอบเขตการตรวจใน [VERIFICATION.md](VERIFICATION.md)
 
-อ้างอิง pool pattern เฉพาะ `mysql2/promise`, env และ bound queries จาก [reference server.js](https://github.com/tharitten1234/slac-cpu-shop/blob/master/server.js) ไม่คัดลอก Inventory/users หรือฟีเจอร์ร้านค้า
+## 7. ปัญหาที่พบบ่อย
 
-Repository นี้เผยแพร่ตามคำสั่งผู้ใช้ โดยใช้ต้นฉบับ final-ip ที่ปรับ UI navy/teal มี Thai/English, sidebar navigation, ตาราง desktop และการ์ดมือถือแล้ว การส่ง LMS เป็นขั้นตอนแยกและยังไม่ได้ดำเนินการ
+| อาการ | สิ่งที่ควรตรวจ |
+|---|---|
+| Login แจ้งเชื่อมต่อไม่ได้ / timeout | Cloud backend ยังเปิดอยู่หรือไม่, URL ลงท้าย `/api`, เครือข่ายเข้าถึง port 3022 ได้หรือไม่ |
+| แก้ frontend `.env` แล้วไม่เปลี่ยน | หยุด Expo แล้วเริ่มใหม่; หน้าเว็บลอง Ctrl+Shift+R |
+| DB connection refused ขณะรันบนคอม | `localhost` ชี้คอมเครื่องนั้น; ใช้ backend บน Cloud ตามขั้นตอนนี้ |
+| SSH แจ้ง administratively prohibited | บัญชีไม่อนุญาต forwarding ไปปลายทาง หลีกเลี่ยงวิธี tunnel และใช้ backend บน Cloud |
+| MySQL access denied | ตรวจบัญชี/รหัสผ่าน MySQL และสิทธิ์ DB กับผู้ดูแล |
+| Startup failed | ตรวจ backend `.env`, ตาราง ThaKet_employees, สิทธิ์อ่าน DB และ port 3022 |
+| Port 3022 ถูกใช้แล้ว | ตรวจ server ที่ทำงานอยู่ ไม่เปิดซ้ำหรือปิด process โดยไม่ทราบเจ้าของ |
+| Expo Go ไม่รองรับโปรเจกต์ | ใช้ Expo Go/development build ที่รองรับ SDK 54 |
+| เว็บ HTTPS เรียก HTTP API ไม่ได้ | Browser อาจบล็อก mixed content; ใช้ backend HTTPS ที่ผู้ดูแลจัดให้ |
 
-## ต้นฉบับและ UI ล่าสุด
+กรณีผู้ดูแลอนุญาต backend ในเครื่องให้เข้าถึง **DB อาจารย์เดิม** ได้จริง: web ในคอมใช้ `http://localhost:3022/api`, Android emulator ใช้ `http://10.0.2.2:3022/api` และมือถือใช้ LAN IP ของคอม ไม่ใช้ localhost ของโทรศัพท์ ห้ามเปลี่ยนเป็น DB ใหม่เพื่อหลีกเลี่ยงข้อกำหนดงาน
 
-ใช้โฟลเดอร์ `C:\Users\tarit\OneDrive\Desktop\final-ip\Std0202211IPFinal2026` เป็น Git working copy หลัก เชื่อมกับ origin/main แล้ว ไม่ต้องใช้งานสำเนา outputs/hr-manager ต่อ
+## อ้างอิง
 
-UI มีเมนูเลื่อนไปแต่ละส่วน ไฮไลต์ติดตามการเลื่อน, summary ตามผลค้นหา, ตารางบนจอกว้าง/การ์ดบนมือถือ และไทย/English รักษา API/DB schema เดิม การแก้ frontend ไม่ต้องอัปโหลด backend ใหม่ ให้ refresh หรือ restart Expo เพื่อดู UI ใหม่
+- โจทย์ Final Exam: HR Manager & Salary Analytics System และสไลด์ React Native + Cloud DB ของรายวิชา
+- [Expo SDK 54 documentation](https://docs.expo.dev/versions/v54.0.0/)
+- [ตัวอย่าง Express/mysql2 connection pool](https://github.com/tharitten1234/slac-cpu-shop/blob/master/server.js) ใช้อ้างอิงรูปแบบเชื่อมต่อเท่านั้น
